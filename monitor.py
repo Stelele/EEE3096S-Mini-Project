@@ -8,6 +8,7 @@ import RPi.GPIO as GPIO
 import adafruit_mcp3xxx.mcp3008 as MCP
 import RPi.GPIO as GPIO
 from adafruit_mcp3xxx.analog_in import AnalogIn
+from datetime import datetime
 
 chan_ldr = None                  # ldr channel
 chan_temp = None                 # temp sensor channel
@@ -19,13 +20,15 @@ samplingRate = {0:1, 1:5, 2:10}  # sampling rates
 rate = 0                         # current sampling rate position
 start_time = 0                   # program start time
 stopLogging = False              # flag to check if system should log values or not 
+threshMin = 24                   # minium allowable temperature
+threshMax = 29                   # maximum allowable temperature
 
 # Headings
-runtime = 'Runtime'
-read = "Reading"
+runtime = 'Time'
+read = "Sys Timer"
 temp = "Temp"
-lr = "LDR Reading"
-lv = "LDR Voltage"
+lr = "Lumens"
+lv = "Buzzer"
 
 def values_thread():
     # create the thread to run after a delay from the sampling rate
@@ -38,21 +41,50 @@ def values_thread():
         return 
 
     # update runtime
-    current_time = int( time.time() - start_time )
+    sys_time = int( time.time() - start_time )
+    actual_time = datetime.now().strftime("%H:%M:%S")
+    str_runtime = format_time(sys_time)
+
+    #get light intensity and temperature readings from ADC
+    temp = round((chan_temp.voltage - 0.5)/0.01)
+    ldr_vol = chan_ldr.voltage
+    lumen = round((500*(3.3-ldr_vol))/ldr_vol)
+
+    allowable_temp = trigger_buzzer(temp)
 
     # Displaying ldr and temp readings
-    str_runtime = str(current_time) + "s"
-    str_tempValue = chan_temp.value
-    str_temp = str( round( (chan_temp.voltage - 0.5)/0.01, 2 ) ) + " C"
-    str_ldrValue = chan_ldr.value
-    str_ldrVoltage = str( round( chan_ldr.voltage, 2 )) + " V"
+    str_temp = str(temp) + " C"
+    str_lumen = str(lumen) + ' lm'
+    str_buzzer = '' if allowable_temp else '*' 
+    
 
-    print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( str_runtime,
-                                                        str_tempValue,
+    print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( actual_time,
+                                                        str_runtime,
                                                         str_temp,
-                                                        str_ldrValue,
-                                                        str_ldrVoltage))
+                                                        str_lumen,
+                                                        str_buzzer))
 
+def trigger_buzzer(temp):
+    global buzzer
+    global threshMax
+    global threshMin
+
+    allowableTemp = True
+    if temp < threshMin or temp > threshMax:
+        allowableTemp = False
+        buzzer.start(50)
+    else:
+        buzzer.stop()
+
+    return allowableTemp
+
+def format_time(sys_time):
+    hours = sys_time // 3600
+    sys_time = sys_time % 3600
+    minutes = sys_time // 60
+    seconds = sys_time % 60
+
+    return "{:0>2}:{:0>2}:{:0>2}".format(hours, minutes, seconds)
 
 def btn_rate_pressed(channel):
     # Update rate

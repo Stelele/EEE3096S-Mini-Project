@@ -234,10 +234,6 @@ def btn_stop_pressed(channel):
     if stopLogging:
         print(":(\tLogging has stopped\t:(")
         buzzer.stop()
-        # print(temp_data)
-        # print(light_data)
-        a,b,c,d = fetch_values()
-        display_values(a,b,c,d)
     else:
         print(":)\tLoggin has resumed\t:)")
     
@@ -279,10 +275,7 @@ def setup():
     # setup PWM for buzzer
     GPIO.setup(buzzer_pin, GPIO.OUT)
 
-    buzzer = GPIO.PWM(buzzer_pin, 1)    
-
-    # clear storage
-    clear_values()
+    buzzer = GPIO.PWM(buzzer_pin, 1)
 
 
 if __name__ == "__main__":

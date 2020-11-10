@@ -13,7 +13,7 @@ from adafruit_mcp3xxx.analog_in import AnalogIn
 chan_ldr = None                  # ldr channel
 chan_temp = None                 # temp sensor channel
 btn = 23                         # button pin (BCM)
-samplingRate = {0:1, 1:5, 2:10}  # sampling rates
+samplingRate = {0:5, 1:10, 2:15}  # sampling rates
 rate = 0                         # current sampling rate position
 start_time = 0                   # program start time
 
@@ -28,6 +28,12 @@ temp = "Temp"
 lr = "LDR Reading"
 lv = "LDR Voltage"
 
+def unpack(num):
+    return num//255, num%255
+
+def pack(H, L):
+    return H*255 + L
+
 def fetch_values():
     '''
     Fetches values from the eeprom
@@ -37,17 +43,26 @@ def fetch_values():
     temp_count = eeprom.read_byte(0)
     light_count = eeprom.read_byte(1)
 
-    temp_start = 2
-    temp_stop = temp_start + temp_count * 2
-    light_start = temp_stop
-    light_stop = light_start + light_count
+    temp_raw = eeprom.read_block(1, temp_count * 5)
 
-    temp_values = eeprom.read_2bytes( temp_start, temp_count )
-    light_values = eeprom.read_2bytes( light_start, light_count )
+    light_start = temp_count + 1
+    light_raw = eeprom.read_block( light_start, light_count * 5 )
+
+    temp_values = []
+    for i in range(0, len(temp_raw), 5):
+        time = "{:02d}:{:02d}:{:02d}".format( temp_raw[i], temp_raw[i + 1], temp_raw[i + 2])
+        temp_val = pack( temp_raw[i + 3] , temp_raw[i + 4])
+        temp_values.append( [time, temp_val] )
+    
+    light_values = []
+    for i in range(0, len(light_raw), 5):
+        time = "{:02d}:{:02d}:{:02d}".format( light_raw[i], light_raw[i + 1], light_raw[i + 2])
+        light_val = pack( light_raw[i + 3] , light_raw[i + 4])
+        light_values.append( [time, temp_val] )
 
     return temp_count, light_count, temp_values, light_values
 
-def save_values( temp_value, light_value):
+def save_values( temp_arr, light_arr):
     """
     Saves temperature and light values to the eeprom
 
@@ -60,27 +75,34 @@ def save_values( temp_value, light_value):
 
     if (len(temp_data) < 20):
         
-        temp_data = [temp_value] + temp_data
+        temp_data = [temp_arr] + temp_data
     else:
-        temp_data = [temp_value] + temp_data[:-1]
+        temp_data = [temp_arr] + temp_data[:-1]
     
-    if (len(light_data) < 10):
-        light_data = [light_value] + light_data
+    if (len(light_data) < 20):
+        light_data = [light_arr] + light_data
     else:
-        light_data = [light_value] + light_data[:-1]
+        light_data = [light_arr] + light_data[:-1]
     
     temp_length = len(temp_data)
     light_length = len(light_data)
-    temp_start = 2
-    light_start = temp_start + temp_length * 2
+    temp_start = 1
+    light_start = temp_start + temp_length
 
-    # write data lengths to the eeprom
+    # write temp
+    data_to_write = []
+    for data in temp_data:
+        for i in range(0,5):
+            data_to_write.append(data[i])
+
+    # write light
+    for data in light_data:
+        for i in range(0,5):
+            data_to_write.append(data[i])
+    
     eeprom.write_byte(0, temp_length)
     eeprom.write_byte(1, light_length)
-
-    # finally, write data to the eeprom
-    eeprom.write_2bytes(temp_data, temp_start)
-    eeprom.write_2bytes(light_data, light_start)
+    eeprom.write_block(1, data_to_write)
 
 def clear_values():
     """
@@ -104,8 +126,8 @@ def values_thread():
     str_ldrValue = chan_ldr.value
     str_ldrVoltage = str( round( chan_ldr.voltage, 2 )) + " V"
 
-    save_values(chan_temp.value, chan_ldr.value)
-
+    save_values([0,1,2,3,4], [0,1,2,3,4])
+    
     print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( str_runtime,
                                                         str_tempValue,
                                                         str_temp,

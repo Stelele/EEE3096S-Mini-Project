@@ -16,7 +16,7 @@ buzzer = None                    # buzzer pwn handler
 buzzer_pin = 13                  # GPIO pin (BCM) for buzzer
 btn_rate = 23                    # button pin (BCM) to change sampling rate
 btn_stop = 24                    # button pin (BCM) to stop logging
-samplingRate = {0:1, 1:5, 2:10}  # sampling rates
+samplingRate = {0:5, 1:10, 2:15} # sampling rates
 rate = 0                         # current sampling rate position
 start_time = 0                   # program start time
 stopLogging = False              # flag to check if system should log values or not 
@@ -72,7 +72,7 @@ def trigger_buzzer(temp):
     allowableTemp = True
     if temp < threshMin or temp > threshMax:
         allowableTemp = False
-        buzzer.start(50)
+        buzzer.start(100)
     else:
         buzzer.stop()
 
@@ -102,6 +102,7 @@ def btn_rate_pressed(channel):
 def btn_stop_pressed(channel):
 
     global stopLogging
+    global buzzer
 
     stopLogging = not stopLogging
     
@@ -111,6 +112,7 @@ def btn_stop_pressed(channel):
 
     if stopLogging:
         print(":(\tLogging has stopped\t:(")
+        buzzer.stop()
     else:
         print(":)\tLoggin has resumed\t:)")
     

@@ -71,10 +71,13 @@ def fetch_values():
 
     :returns: counts for temperature and light readings, arrays with temmperature and light readings
     '''
-
-    counts = eeprom.read_block(0,2)
-    temp_count = counts[0]
-    light_count = counts[1]
+    global temp_data
+    global light_data
+    
+    # counts = eeprom.read_block(0,2)
+    # print(counts)
+    temp_count = len(temp_data)
+    light_count = len(light_data)
 
     temp_raw = eeprom.read_block(1, temp_count * 4)
 
@@ -231,6 +234,8 @@ def btn_stop_pressed(channel):
     if stopLogging:
         print(":(\tLogging has stopped\t:(")
         buzzer.stop()
+        # print(temp_data)
+        # print(light_data)
         a,b,c,d = fetch_values()
         display_values(a,b,c,d)
     else:

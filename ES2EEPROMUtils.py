@@ -55,6 +55,7 @@ class ES2EEPROM:
         write = i2c_msg.write(self.address, data)
         self.bus.i2c_rdwr(write)
         sleep(0.01)
+    
 
     def read_block(self, start_block, count, bs=32):
         """
@@ -98,6 +99,45 @@ class ES2EEPROM:
         read = i2c_msg.read(self.address, 1)
         self.bus.i2c_rdwr(write, read)  # combined read&write
         return list(read)[0]
+    
+    def unpack(self, num):
+        return num//255, num%255
+
+    def pack(self, H, L):
+        return H*255 + L
+    
+    def read_2bytes(self, start, count):
+        """
+        Read a set of bytes from the start up to but not including the stop byte
+
+        :param start: The register to start reading from
+        :param stop: The register to stop reading at.
+        :returns: an array with the bytes
+        """
+        values = []
+        stop = start + count * 2
+        for i in range(start, stop, 2):
+            H = self.read_byte(i)
+            L = self.read_byte(i + 1)
+            value = self.pack(H, L)
+            values.append(value)
+
+        return values
+    
+    def write_2bytes(self, values, start):
+        """
+        Writes a set of bytes from an array starting from the start register
+
+        :param values: array of bytes to write
+        :param start: start register
+        """
+        length = len(values)
+        stop = start + length * 2
+        for i, j in zip( range(start, stop, 2) , range(0, length)):
+            H, L = self.unpack(values[j])
+            self.write_byte(i,H)
+            self.write_byte(i+1,L)
+
 
     def clear(self, length):
         """

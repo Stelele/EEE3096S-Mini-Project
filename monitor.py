@@ -31,6 +31,7 @@ long_press_threshold = 1         # time button must be pushed down to register a
 eeprom = ES2EEPROMUtils.ES2EEPROM() # eeprom object to handle storage
 temp_data = []                      # recent temperature readings (limit is 20)
 light_data = []                     # recent light readings (limit is 10) 
+start_block = 3000
 
 # Headings
 runtime = 'Time'
@@ -76,13 +77,16 @@ def fetch_values():
     global temp_data
     global light_data
     
-    counts = eeprom.read_block(0,2)
-    temp_count = counts[0]
-    light_count = counts[1]
+    # counts = eeprom.read_block(1,2)
+    # temp_count = counts[0]
+    # light_count = counts[1]
 
-    temp_raw = eeprom.read_block(1, temp_count * 4)
+    temp_count = eeprom.read_byte(1000)
+    light_count = eeprom.read_byte(2000)
 
-    light_start = temp_count + 1
+    temp_raw = eeprom.read_block(start_block, temp_count * 4)
+
+    light_start = start_block + temp_count + 1
     light_raw = eeprom.read_block( light_start, light_count * 4 )
 
     temp_values = []
@@ -141,9 +145,10 @@ def save_values( temp_arr, light_arr):
             data_to_write.append(int(i))
         data_to_write.append(data[1])
     
-    eeprom.write_block(0, [temp_length, light_length])
+    eeprom.write_byte(1000, temp_length)
+    eeprom.write_byte(2000, light_length)
     time.sleep(0.5)
-    eeprom.write_block(1, data_to_write)
+    eeprom.write_block(start_block, data_to_write)
 
 def clear_values():
     """

@@ -51,13 +51,13 @@ def fetch_values():
     temp_values = []
     for i in range(0, len(temp_raw), 5):
         time = "{:02d}:{:02d}:{:02d}".format( temp_raw[i], temp_raw[i + 1], temp_raw[i + 2])
-        temp_val = pack( temp_raw[i + 3] , temp_raw[i + 4])
+        temp_val = temp_raw[i + 3]
         temp_values.append( [time, temp_val] )
     
     light_values = []
     for i in range(0, len(light_raw), 5):
         time = "{:02d}:{:02d}:{:02d}".format( light_raw[i], light_raw[i + 1], light_raw[i + 2])
-        light_val = pack( light_raw[i + 3] , light_raw[i + 4])
+        light_val = temp_raw[ i + 3]
         light_values.append( [time, temp_val] )
 
     return temp_count, light_count, temp_values, light_values
@@ -86,22 +86,22 @@ def save_values( temp_arr, light_arr):
     
     temp_length = len(temp_data)
     light_length = len(light_data)
-    temp_start = 1
-    light_start = temp_start + temp_length
-
+    
     # write temp
     data_to_write = []
     for data in temp_data:
-        for i in range(0,5):
-            data_to_write.append(data[i])
-
-    # write light
+        time_arr = data[0].split(":")
+        for i in time_arr:
+            data_to_write.append(int(i))
+        data_to_write.append(data[1])
+        
     for data in light_data:
-        for i in range(0,5):
-            data_to_write.append(data[i])
+        time_arr = data[0].split(":")
+        for i in time_arr:
+            data_to_write.append(int(i))
+        data_to_write.append(data[1])
     
-    eeprom.write_byte(0, temp_length)
-    eeprom.write_byte(1, light_length)
+    eeprom.write_block(0, [temp_length, light_length])
     eeprom.write_block(1, data_to_write)
 
 def clear_values():
@@ -126,7 +126,7 @@ def values_thread():
     str_ldrValue = chan_ldr.value
     str_ldrVoltage = str( round( chan_ldr.voltage, 2 )) + " V"
 
-    save_values([0,1,2,3,4], [0,1,2,3,4])
+    save_values([actual_time, temp], [actual_time, lumen])
     
     print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( str_runtime,
                                                         str_tempValue,

@@ -15,7 +15,7 @@ class ES2EEPROM:
         self.bus = bus
         self.address = address
 
-    def write_block(self, start_block, data, bs=40, sleep_time=0.01):
+    def write_block(self, start_block, data, bs=32, sleep_time=0.01):
         """
         Write data in blocks, starting at pos start_block.
 
@@ -26,7 +26,7 @@ class ES2EEPROM:
 
         """
 
-        start_block = start_block*5
+        start_block = start_block*4
         b_l = len(data)
         # Last block may not be complete if data length not divisible by block size
         b_c = int(ceil(b_l/float(bs)))  # Block count
@@ -57,7 +57,7 @@ class ES2EEPROM:
         sleep(0.01)
     
 
-    def read_block(self, start_block, count, bs=40):
+    def read_block(self, start_block, count, bs=32):
         """
         Reads multiple registers starting at a given block.
 
@@ -68,7 +68,7 @@ class ES2EEPROM:
 
         """
 
-        start_block = start_block*5
+        start_block = start_block*4
         data = []  # We'll add our read results to here
         # If read count is not divisible by block size,
         # we'll have one partial read at the last read

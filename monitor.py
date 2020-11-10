@@ -81,13 +81,19 @@ def fetch_values():
 
     temp_values = []
     for i in range(0, len(temp_raw), 5):
-        time = "{:02d}:{:02d}:{:02d}".format( temp_raw[i], temp_raw[i + 1], temp_raw[i + 2])
+        hr = temp_raw[i]
+        mn = temp_raw[i + 1]
+        sec = temp_raw[i + 2]
+        time = "{:02d}:{:02d}:{:02d}".format( hr , mn , sec )
         temp_val = temp_raw[i + 3]
         temp_values.append( [time, temp_val] )
     
     light_values = []
     for i in range(0, len(light_raw), 5):
-        time = "{:02d}:{:02d}:{:02d}".format( light_raw[i], light_raw[i + 1], light_raw[i + 2])
+        hr = light_raw[i]
+        mn = light_raw[i + 1]
+        sec = light_raw[i + 2]
+        time = "{:02d}:{:02d}:{:02d}".format( hr, mn, sec)
         light_val = temp_raw[ i + 3]
         light_values.append( [time, temp_val] )
 

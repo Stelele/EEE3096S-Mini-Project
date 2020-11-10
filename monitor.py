@@ -25,6 +25,8 @@ start_time = 0                   # program start time
 stopLogging = False              # flag to check if system should log values or not 
 threshMin = 24                   # minium allowable temperature
 threshMax = 29                   # maximum allowable temperature
+programRun = False               # flag to check if logging function is running
+long_press_threshold = 1         # time button must be pushed down to register a long press
 
 eeprom = ES2EEPROMUtils.ES2EEPROM() # eeprom object to handle storage
 temp_data = []                      # recent temperature readings (limit is 20)
@@ -74,10 +76,9 @@ def fetch_values():
     global temp_data
     global light_data
     
-    # counts = eeprom.read_block(0,2)
-    # print(counts)
-    temp_count = len(temp_data)
-    light_count = len(light_data)
+    counts = eeprom.read_block(0,2)
+    temp_count = counts[0]
+    light_count = counts[1]
 
     temp_raw = eeprom.read_block(1, temp_count * 4)
 
@@ -141,6 +142,7 @@ def save_values( temp_arr, light_arr):
         data_to_write.append(data[1])
     
     eeprom.write_block(0, [temp_length, light_length])
+    time.sleep(0.5)
     eeprom.write_block(1, data_to_write)
 
 def clear_values():
@@ -150,6 +152,11 @@ def clear_values():
     eeprom.clear(4096)
 
 def values_thread():
+    global programRun
+
+    if not programRun:
+        return
+
     # create the thread to run after a delay from the sampling rate
     thread = threading.Timer(samplingRate[rate], values_thread)
     thread.daemon = True
@@ -211,8 +218,9 @@ def btn_rate_pressed(channel):
     # Update rate
     global rate
     global stopLogging
+    global programRun
 
-    if stopLogging:
+    if stopLogging or not programRun:
         return
 
     rate = (rate + 1) % 3
@@ -221,27 +229,54 @@ def btn_rate_pressed(channel):
     print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( runtime, read, temp, lr, lv))
 
 def btn_stop_pressed(channel):
+    global programRun
 
-    global stopLogging
-    global buzzer
+    if not programRun:
+        return
 
-    stopLogging = not stopLogging
+    #check if long press
+    startingAt = time.time()
+    while GPIO.input(btn_stop) == False:
+        time.sleep(0.01)
+
+    timeElapsed = time.time() - startingAt
+
+    if timeElapsed < long_press_threshold: 
+        global stopLogging
+        global buzzer
+
+        stopLogging = not stopLogging
+        
+        #inform user of current system status
+        os.system('clear')
+        print("===================================")
+
+        if stopLogging:
+            print(":(\tLogging has stopped\t:(")
+        else:
+            print(":)\tLoggin has resumed\t:)")
+        
+        print("===================================")
+
+        if stopLogging == False:
+            print(f"Sampling at : {samplingRate[rate]}s")
+            print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( runtime, read, temp, lr, lv))
     
-    #inform user of current system status
-    os.system('clear')
-    print("===================================")
-
-    if stopLogging:
-        print(":(\tLogging has stopped\t:(")
-        buzzer.stop()
     else:
-        print(":)\tLoggin has resumed\t:)")
-    
-    print("===================================")
+        programRun = False
 
-    if not stopLogging:
-        print(f"Sampling at : {samplingRate[rate]}s")
-        print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( runtime, read, temp, lr, lv))
+    buzzer.stop()
+    
+def welcome():
+    print("""
+                 __        __       _                                 _            _                                        ____
+                 \ \      / /  ___ | |  ___   ___   _ __ ___    ___  | |_   ___   | |      ___    __ _   __ _   ___  _ __  |  _ \  _   _
+                  \ \ /\ / /  / _ \| | / __| / _ \ | '_ ` _ \  / _ \ | __| / _ \  | |     / _ \  / _` | / _` | / _ \| '__| | |_) || | | |
+                   \ V  V /  |  __/| || (__ | (_) || | | | | ||  __/ | |_ | (_) | | |___ | (_) || (_| || (_| ||  __/| |    |  __/ | |_| |
+                    \_/\_/    \___||_| \___| \___/ |_| |_| |_| \___|  \__| \___/  |_____| \___/  \__, | \__, | \___||_|    |_|     \__, |
+                                                                                                  |___/  |___/                      |___/
+    """)
+    print("Select an option:     L - Start Logging       H - See Recording Log      C - Clear Log      Q - Quit")
 
 def setup():
 
@@ -275,21 +310,55 @@ def setup():
     # setup PWM for buzzer
     GPIO.setup(buzzer_pin, GPIO.OUT)
 
-    buzzer = GPIO.PWM(buzzer_pin, 1)
+
+    buzzer = GPIO.PWM(buzzer_pin, 1)    
+    buzzer.stop()
+
+def main():
+    global stopLogging
+    global programRun
+    global start_time
+
+    choice = input()
+    choice = choice.lower()
+    if choice == 'l':
+        # program start time
+        programRun = True
+        start_time = time.time()
+        print(f"Sampling at : {samplingRate[rate]}s")
+        print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( runtime, read, temp, lr, lv))
+        
+        values_thread()
+        stopLogging = False
+
+        while programRun:
+            pass
+        
+        os.system('clear')
+        welcome()
+
+    elif choice == 'h':
+        temp_count, light_count, temp_values, light_values = fetch_values()
+        display_values(temp_count, light_count, temp_values, light_values)
+    
+    elif choice == 'c':
+        clear_values()
+        print("Cleared!")
+    
+    elif choice == 'q':
+        raise KeyboardInterrupt
+
+    else:
+        print("invalid choice selected")
 
 
 if __name__ == "__main__":
     try:
         setup()
-
-        # program start time.
-        start_time = time.time()
-        print(f"Sampling at : {samplingRate[rate]}s")
-        print("{:<15}{:<15}{:<15}{:<15}{:<15}".format( runtime, read, temp, lr, lv))
-
-        values_thread()
+        welcome()
         while True:
-            pass
+            main()            
+       
     except KeyboardInterrupt:
         print("\nExiting Gracefully..")
     except Exception as e:

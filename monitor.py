@@ -43,7 +43,7 @@ def display_values(temp_count, light_count, temp_values, light_values):
     Displays up to the last 20 temperature and lumenous intensity reading
     """
 
-    print(f"There are {temp_count} temperature readings and {light_count} readings.")
+    print(f"There are {temp_count} temperature readings and {light_count} light intensity readings.")
     print("===========================")
     print("Temperature readings")
     print("===========================")
@@ -71,16 +71,18 @@ def fetch_values():
 
     :returns: counts for temperature and light readings, arrays with temmperature and light readings
     '''
-    temp_count = eeprom.read_byte(0)
-    light_count = eeprom.read_byte(1)
 
-    temp_raw = eeprom.read_block(1, temp_count * 5)
+    counts = eeprom.read_block(0,2)
+    temp_count = counts[0]
+    light_count = counts[1]
+
+    temp_raw = eeprom.read_block(1, temp_count * 4)
 
     light_start = temp_count + 1
-    light_raw = eeprom.read_block( light_start, light_count * 5 )
+    light_raw = eeprom.read_block( light_start, light_count * 4 )
 
     temp_values = []
-    for i in range(0, len(temp_raw), 5):
+    for i in range(0, len(temp_raw), 4):
         hr = temp_raw[i]
         mn = temp_raw[i + 1]
         sec = temp_raw[i + 2]
@@ -89,12 +91,12 @@ def fetch_values():
         temp_values.append( [time, temp_val] )
     
     light_values = []
-    for i in range(0, len(light_raw), 5):
+    for i in range(0, len(light_raw), 4):
         hr = light_raw[i]
         mn = light_raw[i + 1]
         sec = light_raw[i + 2]
         time = "{:02d}:{:02d}:{:02d}".format( hr, mn, sec)
-        light_val = temp_raw[ i + 3]
+        light_val = light_raw[ i + 3]
         light_values.append( [time, temp_val] )
 
     return temp_count, light_count, temp_values, light_values
@@ -229,6 +231,8 @@ def btn_stop_pressed(channel):
     if stopLogging:
         print(":(\tLogging has stopped\t:(")
         buzzer.stop()
+        a,b,c,d = fetch_values()
+        display_values(a,b,c,d)
     else:
         print(":)\tLoggin has resumed\t:)")
     

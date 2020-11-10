@@ -149,27 +149,7 @@ class ES2EEPROM:
         """
         self.write_block(0, [0x00]*length)
 
-    def populate_mock_scores(self):
-        """
-        Populates three mock scores in EEPROM
-        :return:
-        """
-
-        # First 4 bytes contain how many scores there are
-        self.write_block(0, [4])
-        scores = [["ChB", 5], ["Ada", 7], ["LSu", 4], ["EEE", 8]]
-        scores.sort(key=lambda x: x[1])
-        data_to_write = []
-        for score in scores:
-            # get the string
-            for letter in score[0]:
-                data_to_write.append(ord(letter))
-            data_to_write.append(score[1])
-        self.write_block(1, data_to_write)
-
-
 if __name__ == "__main__":
     eeprom = ES2EEPROM()
     eeprom.clear(4096)
-    eeprom.populate_mock_scores()
 

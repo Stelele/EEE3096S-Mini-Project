@@ -18,8 +18,8 @@ buzzer = None                    # buzzer pwn handler
 buzzer_pin = 13                  # GPIO pin (BCM) for buzzer
 btn_rate = 23                    # button pin (BCM) to change sampling rate
 btn_stop = 24                    # button pin (BCM) to stop logging
-samplingRate = {0:1, 1:5, 2:10}  # sampling rates
 
+samplingRate = {0:5, 1:10, 2:15} # sampling rates
 rate = 0                         # current sampling rate position
 start_time = 0                   # program start time
 stopLogging = False              # flag to check if system should log values or not 
@@ -39,6 +39,9 @@ lv = "Buzzer"
 
 
 def display_values(temp_count, light_count, temp_values, light_values):
+    """
+    Displays up to the last 20 temperature and lumenous intensity reading
+    """
 
     print(f"There are {temp_count} temperature readings and {light_count} readings.")
     print("===========================")
@@ -60,10 +63,6 @@ def display_values(temp_count, light_count, temp_values, light_values):
         tim = light_values[i][0]
         val = str(light_values[i][1]) + " lm"
         print("{:<15}{:<15}".format( tim , val ))
-
-
-
-
 
 
 def fetch_values():
@@ -96,10 +95,7 @@ def fetch_values():
 
 def save_values( temp_arr, light_arr):
     """
-    Saves temperature and light values to the eeprom
-
-    :param temp_value: the temperature value to write
-    :param light_value: the light value to write
+    Saves temperature and lumenous intensity values to the eeprom
     """
     # update the data arrays
     global temp_data
@@ -140,7 +136,7 @@ def clear_values():
     """
     Clears all eeprom data
     """
-    eeprom.clear(32)
+    eeprom.clear(4096)
 
 def values_thread():
     # create the thread to run after a delay from the sampling rate
@@ -186,7 +182,7 @@ def trigger_buzzer(temp):
     allowableTemp = True
     if temp < threshMin or temp > threshMax:
         allowableTemp = False
-        buzzer.start(50)
+        buzzer.start(100)
     else:
         buzzer.stop()
 
@@ -216,6 +212,7 @@ def btn_rate_pressed(channel):
 def btn_stop_pressed(channel):
 
     global stopLogging
+    global buzzer
 
     stopLogging = not stopLogging
     
@@ -225,6 +222,7 @@ def btn_stop_pressed(channel):
 
     if stopLogging:
         print(":(\tLogging has stopped\t:(")
+        buzzer.stop()
     else:
         print(":)\tLoggin has resumed\t:)")
     

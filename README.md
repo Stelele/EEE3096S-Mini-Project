@@ -2,7 +2,7 @@
 
 This script runs an environment logger system that monitors temperature and light intensity on a Rapsberry Pi Zero W. The script works on a circuit connected as shown below.
 
-![][circuit_diagram.JPG]
+![](circuit_diagram.JPG)
 
 # Setup
 

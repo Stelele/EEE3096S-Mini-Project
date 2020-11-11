@@ -1,6 +1,8 @@
 # Introduction
 
-This script runs an environment logger system that monitors temperature and light intensity. 
+This script runs an environment logger system that monitors temperature and light intensity on a Rapsberry Pi Zero W. The script works on a circuit connected as shown below.
+
+![][circuit diagram.JPG]
 
 # Setup
 
